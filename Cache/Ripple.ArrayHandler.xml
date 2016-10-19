@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2016.1.2 (Build 206U)" ts="2016-10-17 17:35:43">
+<Class name="Ripple.ArrayHandler">
+<Description><![CDATA[
+Array Handling utility class written by Mike Clayton for:<br />
+<i>Ripple Foundation Community Interest Company</i>
+]]></Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>64208,62778.379963</TimeChanged>
+<TimeCreated>64208,47325.161598</TimeCreated>
+
+<UDLText name="T">
+<Content><![CDATA[
+/*
+
+ ----------------------------------------------------------------------------
+ | Ripple.ArrayHandler: Export a class instance as an array                 |
+ | Author: Mike Clayton                                                     |
+ |                                                                          |
+ | Copyright (c) 2016 Ripple Foundation Community Interest Company          |
+ |                                                                          |
+ |                                                                          |
+ | Licensed under the Apache License, Version 2.0 (the "License");          |
+ | you may not use this file except in compliance with the License.         |
+ | You may obtain a copy of the License at                                  |
+ |                                                                          |
+ |     http://www.apache.org/licenses/LICENSE-2.0                           |
+ |                                                                          |
+ | Unless required by applicable law or agreed to in writing, software      |
+ | distributed under the License is distributed on an "AS IS" BASIS,        |
+ | WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. |
+ | See the License for the specific language governing permissions and      |
+ |  limitations under the License.                                          |
+ ----------------------------------------------------------------------------
+
+  17 October 2016
+
+*/
+]]></Content>
+</UDLText>
+
+<Method name="toArray">
+<Description><![CDATA[
+This Classmethod returns an array representing the data for a passed in object instance
+
+<br /><br />The following parameters are used:
+<ul>
+<li><i>object</i> = the object instance. (required)</li>
+<li><i>data</i> = (By Reference) the data array to be returned. (required)</li>
+<li><i>sparse</i> = a %Boolean flag. If set to 1, null values will not be exported in the array. The default is 0 (optional)</li>
+</ul>
+<br /><br /><i>ReturnValue</i> = a %Status value. If successful this will be 1, otherwise 0.<br /><br />
+]]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[object:%RegisteredObject,&data:%String,sparse:%Boolean=0]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  // Ensure a valid object instance is passed in and we can get at its metadata
+  if '$isobject(object) quit 0
+  set className=object.%ClassName(1)
+  set classObj=##class(%Dictionary.CompiledClass).%OpenId(className)
+  if '$isobject(classObj) quit 0
+  ;
+  // Loop through each Property
+  set property=""
+  for  {
+    set property=classObj.Properties.Next(property)
+    quit:property=""
+    // Don't use Transient Properties
+    if classObj.Properties.GetAt(property).Transient continue
+    set propertyName=classObj.Properties.GetAt(property).Name
+    set propertyType=classObj.Properties.GetAt(property).Type
+    // For embedded objects add sub-array in the format: data(propertyName,1,subProperty)=value
+    if $extract(propertyType)'="%" {
+      set propertyObj=$property(object,propertyName)
+      if $isObject(propertyObj) {
+        kill subData
+        do ..toArray(propertyObj,.subData,sparse)
+        merge data(propertyName,1)=subData
+      }
+      continue
+    }
+    // For Arrays and Lists add to array in the format: data(propertyName,key)=value
+    // Note: Arrays or lists of Objects are not handled yet
+    if classObj.Properties.GetAt(property).Collection'="" {
+      set propertyObj=$property(object,propertyName)
+      set id="" for  { set id=$method(propertyObj,"Next",id) quit:id=""  set data(propertyName,id)=$method(propertyObj,"GetAt",id) }
+      continue
+    }
+    // Calculated Properties - check a Get() method exists
+    if classObj.Properties.GetAt(property).Calculated {
+      if ##class(%Dictionary.CompiledMethod).%ExistsId(className_"||"_propertyName_"Get") {
+        set ret=$method(object,propertyName_"Get") if (ret'="" || 'sparse) set data(propertyName)=ret
+      }
+      continue
+    }
+    // Standard Properties
+    set ret=$property(object,propertyName) if (ret'="" || 'sparse) set data(propertyName)=ret
+  }
+  quit $$$OK
+]]></Implementation>
+</Method>
+</Class>
+</Export>
