@@ -14,7 +14,8 @@ Array Handling utility class written by Mike Clayton for:<br />
 /*
 
  ----------------------------------------------------------------------------
- | Ripple.ArrayHandler: Export a class instance as an array                 |
+ | Ripple.ArrayHandler: Export a class instance as an array   
+ |                      Aim is to help convert Cache DB data to JSON        |
  | Author: Mike Clayton                                                     |
  |                                                                          |
  | Copyright (c) 2016 Ripple Foundation Community Interest Company          |
